@@ -1,6 +1,6 @@
 import Fastify from "fastify";
 import "dotenv/config";
-import { initServer } from "../lib/initServer";
+import { initServer } from "./lib/initServer";
 import OpenAI from "openai";
 
 const fastify = Fastify({
@@ -16,19 +16,20 @@ type ThreadByChatId = {
   [userId: string]: string;
 };
 const threadByChatId: ThreadByChatId = {};
+const assistantId = "asst_wn2d7hmA76z0KRULrePf0MC5";
 
 // Declare a route
 fastify.get("/", (request, reply) => {
   reply.send({ hi: "welcome to my fucking DRUM AND BASS BACKEND" });
 });
 
+type ChatInputReqBody = {
+  chatId: string;
+  message: string;
+}
+
 fastify.post("/chat", async (req, res) => {
-  const assistantId = "asst_wn2d7hmA76z0KRULrePf0MC5";
-  const body = req.body as {
-    chatId: string;
-    message: string;
-  };
-  const { chatId, message } = body;
+  const { chatId, message } = req.body as ChatInputReqBody;
 
   // Create a new thread if it's the user's first message
   if (!threadByChatId[chatId]) {
@@ -47,48 +48,30 @@ fastify.post("/chat", async (req, res) => {
   );
   console.log("Out: ", threadMessage);
 
-  const run = await openai.beta.threads.runs.create(
-    threadByChatId[chatId], // Use the stored thread ID for this user
-    {
-      assistant_id: assistantId,
-    },
-  );
+  const run = await openai.beta.threads.runs.create(threadByChatId[chatId], {
+    assistant_id: assistantId,
+  });
   console.log("Run: ", run, "\n");
 
   // Periodically retrieve the Run to check on its status
-  const retrieveRun = async () => {
-    let keepRetrievingRun: OpenAI.Beta.Threads.Runs.Run;
-
+  const retrieveUntilCompleted = async () => {
     while (run.status !== "completed") {
-      keepRetrievingRun = await openai.beta.threads.runs.retrieve(
+      const keepRetrieving = await openai.beta.threads.runs.retrieve(
         threadByChatId[chatId], // Use the stored thread ID for this user
         run.id,
       );
 
-      console.log(`Run status: ${keepRetrievingRun.status}`);
-
-      if (keepRetrievingRun.status === "completed") {
-        console.log("\n");
-        break;
-      }
+      console.log(`Run status: ${keepRetrieving.status}`);
+      if (keepRetrieving.status === "completed") break;
     }
   };
 
-  await retrieveRun();
+  await retrieveUntilCompleted();
 
   const allMessages = await openai.beta.threads.messages.list(
     threadByChatId[chatId],
   );
 
   const content = allMessages.data[0].content[0];
-
-  console.log("content:", content);
-  console.log(JSON.stringify(allMessages));
-
-  res.code(200).send({
-    response: content,
-  });
-
-  console.log("User: ", threadMessage.content[0]);
-  console.log("Assistant: ", allMessages.data[0].content[0]);
+  res.code(200).send({ response: content });
 });
