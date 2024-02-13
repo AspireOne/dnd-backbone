@@ -6,7 +6,7 @@ export const runServer = (fastify: FastifyInstance) => {
   fastify.register(cors, {
     origin: true,
   });
-  
+
   fastify.listen({ port: 3000 }, (err, address) => {
     if (err) {
       fastify.log.error(err);
