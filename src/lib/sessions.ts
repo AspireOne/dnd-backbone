@@ -1,4 +1,4 @@
-type SessionData = {
+export type SessionData = {
   threadId: string;
   gameState: GameState;
 };

@@ -1,7 +1,8 @@
 import Fastify from "fastify";
 import "dotenv/config";
-import { runServer } from "./lib/runServer";
+import { runServer } from "./helpers/runServer";
 import { genResponse, genResponseInputSchema } from "./routes/genResponseRoute";
+import { createChat } from "./routes/createChatRoute";
 
 /** This file is the entry point for the project. */
 
@@ -17,10 +18,17 @@ fastify.get("/", (request, reply) => {
   });
 });
 
-fastify.post("/chat", async (req, res) => {
-  const parsed = genResponseInputSchema.safeParse(req.body);
-  if (!parsed.success) return res.code(400).send(parsed.error);
-  
-  const response = await genResponse(parsed.data);
+fastify.post("/chat/add", async (req, res) => {
+  // Validate input.
+  const input = genResponseInputSchema.safeParse(req.body);
+  if (!input.success) return res.code(400).send(input.error);
+
+  // Gen & return.
+  const response = await genResponse(input.data);
   return res.code(200).send(response);
+});
+
+fastify.post("/chat/create", async (rea, res) => {
+  const session = await createChat();
+  return res.code(200).send({ session: session });
 });

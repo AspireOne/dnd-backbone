@@ -1,6 +1,7 @@
 import cors from "@fastify/cors";
 import { FastifyInstance } from "fastify";
 
+/** This function initializes and starts the server. */
 export const runServer = (fastify: FastifyInstance) => {
   fastify.register(cors, {
     origin: true,
