@@ -35,19 +35,19 @@ fastify.post<{ Body: GenResponseInput }>(
   { schema: { body: genResponseInputSchema } },
   async (req, res) => {
     const response = await genResponse(req.body);
-    return res.code(200).send({
+    return {
       message: response.message,
       state: response.state,
-    });
+    };
   },
 );
 
 fastify.post("/chat/create", async (request, res) => {
   const response = await createChat();
-  return res.code(200).send({
+  return {
     session: response.session,
     message: response.message,
-  });
+  };
 });
 
 fastify.get<{ Querystring: GetGameStateInput }>(
@@ -55,7 +55,7 @@ fastify.get<{ Querystring: GetGameStateInput }>(
   { schema: { querystring: getGameStateInputSchema } },
   async (req, res) => {
     const state = await getGameStateRoute(req.query);
-    return res.code(200).send({ state: state });
+    return { state: state };
   },
 );
 
@@ -64,6 +64,6 @@ fastify.get<{ Querystring: GetMessagesInput }>(
   { schema: { querystring: getMessagesInputSchema } },
   async (request, res) => {
     const messages = await retrieveMessages(request.query);
-    return res.code(200).send({ messages: messages });
+    return { messages: messages };
   },
 );
