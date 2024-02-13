@@ -8,6 +8,8 @@ export const getGameStateInputSchema = z.object({
 
 export type GetGameStateInput = z.infer<typeof getGameStateInputSchema>;
 
-export const getGameStateRoute = async ({ session }: GetGameStateInput) => {
+export const getGameStateRoute = async ({
+  session,
+}: GetGameStateInput): Promise<GameState> => {
   return sessions[session].gameState;
 };

@@ -12,7 +12,11 @@ export const getMessagesInputSchema = z.object({
 
 export type GetMessagesInput = z.infer<typeof getMessagesInputSchema>;
 
-export const retrieveMessages = async ({ session, after, limit }: GetMessagesInput) => {
+export const retrieveMessages = async ({
+  session,
+  after,
+  limit,
+}: GetMessagesInput): Promise<string[]> => {
   const messages = await openai.beta.threads.messages.list(
     sessions[session].threadId,
     {
@@ -22,5 +26,9 @@ export const retrieveMessages = async ({ session, after, limit }: GetMessagesInp
       order: "desc", // From newest.
     },
   );
-  return messages.data.map((m) => m.content);
+  return messages.data.map((m) => {
+    if (m.content[0].type === "image_file")
+      throw new Error("Image files are not supported rn.");
+    return m.content[0].text.value;
+  });
 };

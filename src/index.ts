@@ -20,9 +20,7 @@ import {
 
 /** This file is the entry point for the project. */
 
-const fastify = Fastify({
-  logger: true,
-});
+const fastify = Fastify({ logger: true });
 runServer(fastify);
 
 // Health check route.
