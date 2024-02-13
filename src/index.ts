@@ -33,7 +33,7 @@ fastify.get("/", (request, reply) => {
 });
 
 fastify.post<{ Body: GenResponseInput }>(
-  "/chat/add",
+  "/chat/messages",
   { schema: { body: genResponseInputSchema } },
   async (req, res) => {
     const response = await genResponse(req.body);
