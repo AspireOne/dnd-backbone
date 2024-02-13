@@ -104,3 +104,15 @@ export const runAndResolve = async (threadId: string, session: string) => {
   }
   return run;
 };
+
+/** Gets the latest sent message from the thread. Never returns an image (cause not supported rn). */
+export const getLatestMessage = async (threadId: string): Promise<Threads.Messages.MessageContentText> => {
+  // Retrieve the messages and return the assistant's response.
+  const allMessages = await openai.beta.threads.messages.list(threadId);
+  const content = allMessages.data[0].content[0];
+
+  if (content.type === "image_file")
+    throw new Error("Why the fuck did the assistant return an image.");
+
+  return content;
+};

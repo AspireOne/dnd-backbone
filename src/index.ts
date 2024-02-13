@@ -25,10 +25,16 @@ fastify.post("/chat/add", async (req, res) => {
 
   // Gen & return.
   const response = await genResponse(input.data);
-  return res.code(200).send(response);
+  return res.code(200).send({
+    message: response.message,
+    state: response.state,
+  });
 });
 
 fastify.post("/chat/create", async (rea, res) => {
-  const session = await createChat();
-  return res.code(200).send({ session: session });
+  const response = await createChat();
+  return res.code(200).send({
+    session: response.session,
+    message: response.message,
+  });
 });

@@ -1,9 +1,12 @@
 import { sessions } from "../lib/sessions";
 import { openai } from "../lib/openai";
-import { runAndResolve } from "../helpers/assistantHelpers";
+import { getLatestMessage, runAndResolve } from "../helpers/assistantHelpers";
 
 /** Creates a new chat with Assistant's initial message and returns the new session */
-export const createChat = async (): Promise<string> => {
+export const createChat = async (): Promise<{
+  session: string;
+  message: string;
+}> => {
   const session = genSessionUuid();
   const thread = await openai.beta.threads.create();
   console.log("New thread created with ID: ", thread.id);
@@ -15,7 +18,8 @@ export const createChat = async (): Promise<string> => {
 
   // Dry-run to get first message that sets up the scene etc.
   await runAndResolve(thread.id, session);
-  return session;
+  const latestMessage = await getLatestMessage(thread.id);
+  return { session, message: latestMessage.text.value };
 };
 
 function genSessionUuid() {
