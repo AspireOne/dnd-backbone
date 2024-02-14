@@ -2,7 +2,11 @@ import { z } from "zod";
 import { sessions } from "../lib/sessions";
 import { openai } from "../lib/openai";
 import { ASSISTANT_ID } from "../lib/constants";
-import { getLatestMessage, waitAndResolve } from "../helpers/assistantHelpers";
+import {
+  getLatestMessage,
+  waitUntilStatusResolved,
+  resolveRequiredFunctionsRecursively,
+} from "../helpers/assistantHelpers";
 import { GameState } from "../types/types";
 
 export const genResponseInputSchema = z.object({
@@ -36,12 +40,22 @@ export const genResponse = async ({
   console.log("Created chat message: ", threadMessage);
 
   // Create the run.
-  const run = await openai.beta.threads.runs.create(sessions[session].threadId, {
+  let run = await openai.beta.threads.runs.create(sessions[session].threadId, {
     assistant_id: ASSISTANT_ID,
   });
 
   // Run & wait until it's fully resolved (& take care of required actions).
-  await waitAndResolve(sessions[session].threadId, session, run.id);
+  run = await waitUntilStatusResolved(sessions[session].threadId, run.id);
+
+  if (run.status === "requires_action") {
+    await resolveRequiredFunctionsRecursively(
+      run.required_action!.submit_tool_outputs.tool_calls,
+      session,
+      sessions[session].threadId,
+      run.id,
+    );
+  }
+
   const latestMessage = await getLatestMessage(sessions[session].threadId);
 
   return {
