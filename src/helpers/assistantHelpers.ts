@@ -3,7 +3,7 @@ import { Threads } from "openai/resources/beta";
 import RequiredActionFunctionToolCall = Threads.RequiredActionFunctionToolCall;
 import { RunSubmitToolOutputsParams } from "openai/src/resources/beta/threads/runs/runs";
 import { sessions } from "../lib/sessions";
-import { ResolvedRunStatus, StatTypes } from "../types/types";
+import { GameState, ResolvedRunStatus } from "../types/types";
 import { wait, withTimeout } from "../utils";
 
 const CHECK_COUNT_LIMIT = 1000;
@@ -95,15 +95,8 @@ export const getFunctions = (session: string) => {
   return {
     getInventory: () => sessions[session].gameState.inventoryItems,
     getStats: () => sessions[session].gameState.stats,
-    modifyStats: (stats: { type: StatTypes; quantity: number }[]) => {
-      for (const stat of stats) {
-        const foundStat = sessions[session].gameState.stats.find(
-          (s) => s.type === stat.type,
-        );
-
-        if (foundStat) foundStat.quantity += stat.quantity;
-        else sessions[session].gameState.stats.push(stat);
-      }
+    modifyStats: (stats: Partial<GameState["stats"]>) => {
+      Object.assign(sessions[session].gameState.stats, stats);
     },
     addItem: (name: string, quantity: number, img: string) => {
       sessions[session].gameState.inventoryItems.push({

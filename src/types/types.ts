@@ -1,4 +1,3 @@
-export type StatTypes = "health" | "mana" | "strength";
 export type GameState = {
   inventoryItems: {
     name: string;
@@ -6,9 +5,12 @@ export type GameState = {
     img: string;
   }[];
   stats: {
-    type: StatTypes;
-    quantity: number;
-  }[];
+    // Out of 100.
+    health: number;
+    mana: number;
+    speed: number;
+    strength: number;
+  };
 };
 
 export type RunStatus =

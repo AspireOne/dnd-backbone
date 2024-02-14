@@ -18,7 +18,15 @@ export const createChat = async (): Promise<{
 
   sessions[session] = {
     threadId: thread.id,
-    gameState: { stats: [], inventoryItems: [] },
+    gameState: {
+      stats: {
+        health: 100,
+        strength: 50,
+        speed: 100,
+        mana: 50,
+      },
+      inventoryItems: [],
+    },
   };
 
   // Create the run.
