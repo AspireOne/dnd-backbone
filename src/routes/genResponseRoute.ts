@@ -2,8 +2,8 @@ import { z } from "zod";
 import { sessions } from "../lib/sessions";
 import { openai } from "../lib/openai";
 import { ASSISTANT_ID } from "../lib/constants";
-import { getLatestMessage, runAndResolve } from "../helpers/assistantHelpers";
-import {GameState} from "../types/types";
+import { getLatestMessage, waitAndResolve } from "../helpers/assistantHelpers";
+import { GameState } from "../types/types";
 
 export const genResponseInputSchema = z.object({
   session: z
@@ -39,10 +39,9 @@ export const genResponse = async ({
   const run = await openai.beta.threads.runs.create(sessions[session].threadId, {
     assistant_id: ASSISTANT_ID,
   });
-  console.log("Created run: ", run);
 
   // Run & wait until it's fully resolved (& take care of required actions).
-  await runAndResolve(sessions[session].threadId, session);
+  await waitAndResolve(sessions[session].threadId, session, run.id);
   const latestMessage = await getLatestMessage(sessions[session].threadId);
 
   return {

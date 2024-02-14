@@ -4,7 +4,7 @@ import RequiredActionFunctionToolCall = Threads.RequiredActionFunctionToolCall;
 import { RunSubmitToolOutputsParams } from "openai/src/resources/beta/threads/runs/runs";
 import { sessions } from "../lib/sessions";
 import { ASSISTANT_ID } from "../lib/constants";
-import {StatTypes} from "../types/types";
+import { StatTypes } from "../types/types";
 
 const RESOLVED_CHECKS_LIMIT = 1000;
 
@@ -13,12 +13,25 @@ export const retrieveUntilStatusResolved = async (
   threadId: string,
   runId: string,
 ) => {
-  for (let i = 0; i < RESOLVED_CHECKS_LIMIT; i++) {
-    const { status } = await openai.beta.threads.runs.retrieve(threadId, runId);
+  let status = "";
+  let requiredAction: Threads.Runs.Run.RequiredAction | null = null;
+  let i = 0;
+  for (; i < RESOLVED_CHECKS_LIMIT; i++) {
+    const { status: _status, required_action } =
+      await openai.beta.threads.runs.retrieve(threadId, runId);
+    status = _status;
+    requiredAction = required_action;
 
     console.log(`Run status: ${status}`);
     if (status === "completed" || status === "requires_action") break;
   }
+
+  if (i >= RESOLVED_CHECKS_LIMIT) console.warn("Run took too long to resolve.");
+
+  return {
+    status,
+    requiredAction,
+  };
 };
 
 /** Calls all the actions the assistant requires and returns their outputs. */
@@ -74,36 +87,35 @@ export const getFunctions = (session: string) => {
   };
 };
 
-/** Creates a run, waits for it to resolve, fulfills any required action calls, and waits for it to resolve again. */
-export const runAndResolve = async (threadId: string, session: string) => {
-  // Create the run.
-  const run = await openai.beta.threads.runs.create(threadId, {
-    assistant_id: ASSISTANT_ID,
-  });
+/** Waits fora run to resolve, fulfills any required action calls, and waits for it to resolve again. */
+export const waitAndResolve = async (
+  threadId: string,
+  session: string,
+  runId: string,
+) => {
+  const { status, requiredAction } = await retrieveUntilStatusResolved(
+    threadId,
+    runId,
+  );
+  if (status === "failed") throw new Error("Run failed, tf?");
+  // biome-ignore format: off.
+  if (status === "cancelled") throw new Error("Run cancelled, co si to to API dovoluje?");
+  // biome-ignore format: off.
+  if (status === "expired") throw new Error("Run expired, I don't think this should happen.");
+  if (status === "completed") return;
+  if (status === "requires_action") {
+    const outputs = runRequiredActions(
+      requiredAction!.submit_tool_outputs.tool_calls,
+      session,
+    );
 
-  // Run & wait until it's fully resolved (& take care of required actions).
-  while (true) {
-    await retrieveUntilStatusResolved(threadId, run.id);
-    if (run.status === "failed") throw new Error("Run failed, tf?");
-    // biome-ignore format: off.
-    if (run.status === "cancelled") throw new Error("Run cancelled, co si to to API dovoluje?");
-    // biome-ignore format: off.
-    if (run.status === "expired") throw new Error("Run expired, I don't think this should happen.");
-    if (run.status === "completed") break;
-    if (run.status === "requires_action") {
-      const outputs = runRequiredActions(
-        run.required_action!.submit_tool_outputs.tool_calls,
-        session,
-      );
-
-      await openai.beta.threads.runs.submitToolOutputs(threadId, run.id, {
-        tool_outputs: outputs,
-      });
-      // Wait again after submitting outputs.
-      await retrieveUntilStatusResolved(threadId, run.id);
-    }
+    await openai.beta.threads.runs.submitToolOutputs(threadId, runId, {
+      tool_outputs: outputs,
+    });
+    // Wait again after submitting outputs.
+    await retrieveUntilStatusResolved(threadId, runId);
+    return;
   }
-  return run;
 };
 
 /** Gets the latest sent message from the thread. Never returns an image (cause not supported rn). */
