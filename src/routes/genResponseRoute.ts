@@ -3,6 +3,7 @@ import { sessions } from "../lib/sessions";
 import { openai } from "../lib/openai";
 import { ASSISTANT_ID } from "../lib/constants";
 import { getLatestMessage, runAndResolve } from "../helpers/assistantHelpers";
+import {GameState} from "../types/types";
 
 export const genResponseInputSchema = z.object({
   session: z

@@ -30,17 +30,16 @@ fastify.get("/", (request, reply) => {
   });
 });
 
-fastify.post<{ Body: GenResponseInput }>(
-  "/chat/messages",
-  { schema: { body: genResponseInputSchema } },
-  async (req, res) => {
-    const response = await genResponse(req.body);
-    return {
-      message: response.message,
-      state: response.state,
-    };
-  },
-);
+fastify.post("/chat/messages", async (req, res) => {
+  const input = genResponseInputSchema.safeParse(req.body);
+  if (!input.success) return res.code(400).send(input.error);
+
+  const response = await genResponse(input.data);
+  return {
+    message: response.message,
+    state: response.state,
+  };
+});
 
 fastify.post("/chat/create", async (request, res) => {
   const response = await createChat();
@@ -50,20 +49,18 @@ fastify.post("/chat/create", async (request, res) => {
   };
 });
 
-fastify.get<{ Querystring: GetGameStateInput }>(
-  "/chat/gameState",
-  { schema: { querystring: getGameStateInputSchema } },
-  async (req, res) => {
-    const state = await getGameStateRoute(req.query);
-    return { state: state };
-  },
-);
+fastify.get("/chat/gameState", async (req, res) => {
+  const input = getGameStateInputSchema.safeParse(req.body);
+  if (!input.success) return res.code(400).send(input.error);
 
-fastify.get<{ Querystring: GetMessagesInput }>(
-  "/chat/messages",
-  { schema: { querystring: getMessagesInputSchema } },
-  async (request, res) => {
-    const messages = await retrieveMessages(request.query);
-    return { messages: messages };
-  },
-);
+  const state = await getGameStateRoute(input.data);
+  return { state: state };
+});
+
+fastify.get("/chat/messages", async (req, res) => {
+  const input = getMessagesInputSchema.safeParse(req.body);
+  if (!input.success) return res.code(400).send(input.error);
+
+  const messages = await retrieveMessages(input.data);
+  return { messages: messages };
+});

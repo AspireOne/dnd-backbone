@@ -1,5 +1,5 @@
-type StatTypes = "health" | "mana" | "strength";
-type GameState = {
+export type StatTypes = "health" | "mana" | "strength";
+export type GameState = {
   inventoryItems: {
     name: string;
     quantity: number;

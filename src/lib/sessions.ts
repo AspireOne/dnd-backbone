@@ -1,3 +1,5 @@
+import {GameState} from "../types/types";
+
 export type SessionData = {
   threadId: string;
   gameState: GameState;

@@ -4,6 +4,7 @@ import RequiredActionFunctionToolCall = Threads.RequiredActionFunctionToolCall;
 import { RunSubmitToolOutputsParams } from "openai/src/resources/beta/threads/runs/runs";
 import { sessions } from "../lib/sessions";
 import { ASSISTANT_ID } from "../lib/constants";
+import {StatTypes} from "../types/types";
 
 const RESOLVED_CHECKS_LIMIT = 1000;
 
