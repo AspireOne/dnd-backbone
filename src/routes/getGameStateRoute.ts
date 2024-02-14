@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { sessions } from "../lib/sessions";
 import { sessionSchema } from "../helpers/schemaValidations";
-import {GameState} from "../types/types";
+import {GameState} from "../lib/sessions";
 
 export const getGameStateInputSchema = z.object({
   session: sessionSchema,

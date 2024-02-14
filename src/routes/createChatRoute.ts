@@ -21,8 +21,8 @@ export const createChat = async (): Promise<{
     gameState: {
       stats: {
         health: 100,
-        strength: 50,
         speed: 100,
+        strength: 50,
         mana: 50,
       },
       inventoryItems: [],

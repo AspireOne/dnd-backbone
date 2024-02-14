@@ -2,8 +2,8 @@ import { openai } from "../lib/openai";
 import { Threads } from "openai/resources/beta";
 import RequiredActionFunctionToolCall = Threads.RequiredActionFunctionToolCall;
 import { RunSubmitToolOutputsParams } from "openai/src/resources/beta/threads/runs/runs";
-import { sessions } from "../lib/sessions";
-import { GameState, ResolvedRunStatus } from "../types/types";
+import {GameState, sessions} from "../lib/sessions";
+import { ResolvedRunStatus } from "../types/types";
 import { wait, withTimeout } from "../utils";
 
 const CHECK_COUNT_LIMIT = 1000;
