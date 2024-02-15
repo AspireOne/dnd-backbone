@@ -78,12 +78,17 @@ export const createChat = async (): Promise<{
   // Dry-run to get first message that sets up the scene etc.
   run = await waitUntilStatusResolved(thread.id, run.id);
   if (run.status === "requires_action") {
-    await resolveRequiredFunctionsRecursively(
-      run.required_action!.submit_tool_outputs.tool_calls,
-      sessionId,
-      thread.id,
-      run.id,
-    );
+    try {
+      await resolveRequiredFunctionsRecursively(
+        run.required_action!.submit_tool_outputs.tool_calls,
+        sessionId,
+        thread.id,
+        run.id,
+      );
+    } catch (e) {
+      console.error("Error resolving required functions, cancelling run", e);
+      await openai.beta.threads.runs.cancel(thread.id, run.id);
+    }
   }
   const latestMessage = await getLatestMessage(thread.id);
   return { session: sessionId, message: latestMessage.text.value };

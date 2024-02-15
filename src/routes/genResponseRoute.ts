@@ -48,12 +48,17 @@ export const genResponse = async ({
   run = await waitUntilStatusResolved(sessions[session].threadId, run.id);
 
   if (run.status === "requires_action") {
-    await resolveRequiredFunctionsRecursively(
-      run.required_action!.submit_tool_outputs.tool_calls,
-      session,
-      sessions[session].threadId,
-      run.id,
-    );
+    try {
+      await resolveRequiredFunctionsRecursively(
+        run.required_action!.submit_tool_outputs.tool_calls,
+        session,
+        sessions[session].threadId,
+        run.id,
+      );
+    } catch (e) {
+      console.error("Error resolving required functions, cancelling run", e);
+      await openai.beta.threads.runs.cancel(sessions[session].threadId, run.id);
+    }
   }
 
   const latestMessage = await getLatestMessage(sessions[session].threadId);

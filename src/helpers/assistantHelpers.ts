@@ -7,7 +7,7 @@ import { ResolvedRunStatus } from "../types/types";
 import { wait, withTimeout } from "../utils";
 import { db } from "../db/db";
 import { inventoryItems, stats as statsTable } from "../db/schema";
-import { and, eq, } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 const CHECK_COUNT_LIMIT = 1000;
 const STATUS_CHECK_TIMEOUT = 5000;
@@ -102,6 +102,12 @@ export const getFunctions = (session: string) => {
     getStats: () => sessions[session].gameState.stats,
     modifyStats: (stats: Partial<GameState["stats"]>) => {
       Object.assign(sessions[session].gameState.stats, stats);
+      console.log("modified stats. ", sessions[session].gameState.stats);
+      console.log("to modify. ", stats);
+      if (Object.keys(stats).length === 0) {
+        console.warn("No stats to update.");
+        return;
+      }
       db.update(statsTable)
         .set(stats)
         .where(eq(statsTable.sessionId, sessions[session].id))
@@ -109,11 +115,33 @@ export const getFunctions = (session: string) => {
         .then((res) => console.log(res));
     },
     addItem: (name: string, quantity: number, img?: string) => {
+      // check if item with the same name already exists.
+      const item = sessions[session].gameState.inventoryItems.find(
+        (item) => item.name.toLowerCase() === name.toLowerCase(),
+      );
+      if (item) {
+        item.quantity += quantity;
+        db.update(inventoryItems)
+          .set({
+            quantity: item.quantity,
+          })
+          .where(
+            and(
+              eq(inventoryItems.name, item.name),
+              eq(inventoryItems.sessionId, sessions[session].id),
+            ),
+          )
+          .returning()
+          .then((res) => console.log(res));
+        return;
+      }
+
       sessions[session].gameState.inventoryItems.push({
         name: name,
         quantity: quantity,
         img: img || "default",
       });
+
       db.insert(inventoryItems)
         .values({
           name,
