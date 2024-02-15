@@ -1,25 +1,21 @@
 import Fastify from "fastify";
 import "dotenv/config";
 import { runServer } from "./helpers/runServer";
-import {
-  genResponse,
-  GenResponseInput,
-  genResponseInputSchema,
-} from "./routes/genResponseRoute";
+import { genResponse, genResponseInputSchema } from "./routes/genResponseRoute";
 import { createChat } from "./routes/createChatRoute";
 import {
   getGameStateRoute,
-  GetGameStateInput,
   getGameStateInputSchema,
 } from "./routes/getGameStateRoute";
 import {
   retrieveMessages,
-  GetMessagesInput,
   getMessagesInputSchema,
 } from "./routes/getMessagesRoute";
+import {fetchAndFillSessions} from "./helpers/fetchAndTransformSessions";
 
 /** This file is the entry point for the project. */
 
+fetchAndFillSessions();
 const fastify = Fastify({ logger: true });
 runServer(fastify);
 

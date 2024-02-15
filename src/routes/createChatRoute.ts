@@ -1,4 +1,5 @@
 import { sessions } from "../lib/sessions";
+import { sessions as dbSessions, stats } from "../db/schema";
 import { openai } from "../lib/openai";
 import {
   getLatestMessage,
@@ -6,28 +7,70 @@ import {
   waitUntilStatusResolved,
 } from "../helpers/assistantHelpers";
 import { ASSISTANT_ID } from "../lib/constants";
+import { db } from "../db/db";
+import { eq } from "drizzle-orm";
 
 /** Creates a new chat with Assistant's initial message and returns the new session */
 export const createChat = async (): Promise<{
   session: string;
   message: string;
 }> => {
-  const session = genSessionUuid();
-  const thread = await openai.beta.threads.create();
-  console.log("New thread created with ID:", thread.id);
+  //const session = genSessionUuid();
+  let sessionId = "";
+  let transactionSuccess = false;
+  console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
 
-  sessions[session] = {
-    threadId: thread.id,
-    gameState: {
-      stats: {
+  await db.transaction(async (tx) => {
+    console.log("FFFFFFFFFFFFFFFFFFFasdasdasdasdFFFF");
+    const _newSession = await tx
+      .insert(dbSessions)
+      .values({
+        threadId: thread.id,
+      })
+      .returning();
+
+    const newSession = _newSession[0]!;
+    sessionId = newSession.id + "";
+
+    const _newStats = await tx
+      .insert(stats)
+      .values({
+        sessionId: newSession.id,
         health: 100,
         speed: 100,
-        strength: 50,
         mana: 50,
+        strength: 50,
+      })
+      .returning();
+
+    const newStats = _newStats[0]!;
+
+    await tx
+      .update(dbSessions)
+      .set({ statsId: newStats.id })
+      .where(eq(dbSessions.id, newSession.id));
+
+    console.log("New session created:", newSession);
+    console.log("New stats created:", newStats);
+
+    sessions[newSession.id] = {
+      id: newSession.id,
+      threadId: thread.id,
+      gameState: {
+        stats: newStats,
+        inventoryItems: [],
       },
-      inventoryItems: [],
-    },
-  };
+    };
+
+    transactionSuccess = true;
+  });
+
+  if (!transactionSuccess) {
+    throw new Error("Failed to add new session data to database.");
+  }
+
+  const thread = await openai.beta.threads.create();
+  console.log("New thread created with ID:", thread.id);
 
   // Create the run.
   let run = await openai.beta.threads.runs.create(thread.id, {
@@ -39,13 +82,13 @@ export const createChat = async (): Promise<{
   if (run.status === "requires_action") {
     await resolveRequiredFunctionsRecursively(
       run.required_action!.submit_tool_outputs.tool_calls,
-      session,
+      sessionId,
       thread.id,
       run.id,
     );
   }
   const latestMessage = await getLatestMessage(thread.id);
-  return { session, message: latestMessage.text.value };
+  return { session: sessionId, message: latestMessage.text.value };
 };
 
 function genSessionUuid() {

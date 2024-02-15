@@ -7,13 +7,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { z } from "zod";
-import { sessions } from "../lib/sessions";
-import { sessionSchema } from "../helpers/schemaValidations";
-export const getGameStateInputSchema = z.object({
-    session: sessionSchema,
-});
-export const getGameStateRoute = ({ session, }) => __awaiter(void 0, void 0, void 0, function* () {
-    return sessions[session].gameState;
-});
-//# sourceMappingURL=getGameStateRoute.js.map
+import "dotenv/config";
+import { db, dbClient } from "./db";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
+function execute() {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield migrate(db, {
+            migrationsFolder: "src/db/migrations",
+        });
+        yield dbClient.end();
+    });
+}
+execute();
+//# sourceMappingURL=migrate.js.map

@@ -7,6 +7,7 @@ import {
   uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
 // Example usages:
 //
@@ -22,31 +23,54 @@ export const sessions = pgTable(
   "sessions",
   {
     id: serial("id").primaryKey(),
-    createdAt: timestamp("created_at"),
-    userId: integer("user_id").references(() => users.id),
-    threadId: varchar("thread_id", { length: 255 }),
-    inventoryId: integer("inventory_id").references(() => inventories.id),
-    statsId: integer("stats_id").references(() => stats.id),
-  },
+    /*userId: integer("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),*/
+    statsId: integer("stats_id"),
+    threadId: varchar("thread_id", { length: 255 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  } /*,
   (sessions) => {
     return {
       userIdIndex: uniqueIndex("user_id_idx").on(sessions.userId),
     };
-  },
+  },*/,
 );
 
 export const stats = pgTable("stats", {
   id: serial("id").primaryKey(),
-  health: smallint("health"),
-  mana: smallint("mana"),
-  speed: smallint("speed"),
-  strength: smallint("strength"),
+  sessionId: integer("session_id")
+    .references(() => sessions.id, { onDelete: "cascade" })
+    .notNull(),
+  health: smallint("health").default(100).notNull(),
+  mana: smallint("mana").default(100).notNull(),
+  speed: smallint("speed").default(50).notNull(),
+  strength: smallint("strength").default(50).notNull(),
 });
 
-export const inventories = pgTable("inventories", {
+export const inventoryItems = pgTable("inventory_items", {
   id: serial("id").primaryKey(),
-  name: varchar("name", { length: 255 }),
-  // quantity - positive number 0-255
-  quantity: smallint("quantity"),
-  icon: varchar("icon", { length: 255 }),
+  sessionId: integer("session_id")
+    .references(() => sessions.id, { onDelete: "cascade" })
+    .notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  quantity: smallint("quantity").notNull(),
+  icon: varchar("icon", { length: 255 }).notNull(),
 });
+
+export const sessionsRelations = relations(sessions, ({ many, one }) => ({
+  stats: one(stats, { fields: [sessions.id], references: [stats.id] }),
+  //inventoryItems: many(inventoryItems),
+}));
+
+/*export const statsRelations = relations(stats, ({ one }) => ({
+  session: one(sessions, {
+    fields: [stats.sessionId],
+    references: [sessions.statsId],
+  }),
+}));*/
+
+export type User = typeof users.$inferSelect;
+export type DbSession = typeof sessions.$inferSelect;
+export type Stats = typeof stats.$inferSelect;
+export type InventoryItem = typeof inventoryItems.$inferSelect;

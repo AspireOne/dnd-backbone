@@ -1,4 +1,3 @@
-"use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -8,54 +7,51 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const fastify_1 = __importDefault(require("fastify"));
-require("dotenv/config");
-const runServer_1 = require("./helpers/runServer");
-const genResponseRoute_1 = require("./routes/genResponseRoute");
-const createChatRoute_1 = require("./routes/createChatRoute");
-const getGameStateRoute_1 = require("./routes/getGameStateRoute");
-const getMessagesRoute_1 = require("./routes/getMessagesRoute");
-/** This file is the entry point for the project. */
-const fastify = (0, fastify_1.default)({ logger: true });
-(0, runServer_1.runServer)(fastify);
-// Health check route.
+import Fastify from "fastify";
+import "dotenv/config";
+import { runServer } from "./helpers/runServer";
+import { genResponse, genResponseInputSchema } from "./routes/genResponseRoute";
+import { createChat } from "./routes/createChatRoute";
+import { getGameStateRoute, getGameStateInputSchema, } from "./routes/getGameStateRoute";
+import { retrieveMessages, getMessagesInputSchema, } from "./routes/getMessagesRoute";
+import { fetchAndFillSessions } from "./helpers/fetchAndTransformSessions";
+fetchAndFillSessions();
+const fastify = Fastify({ logger: true });
+runServer(fastify);
 fastify.get("/", (request, reply) => {
     reply.send({
         hi: "welcome to my fucking DRUM AND BASS BACKEND <alert>suck my nuts</alert>",
     });
 });
 fastify.post("/chat/messages", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const input = genResponseRoute_1.genResponseInputSchema.safeParse(req.body);
+    const input = genResponseInputSchema.safeParse(req.body);
     if (!input.success)
         return res.code(400).send(input.error);
-    const response = yield (0, genResponseRoute_1.genResponse)(input.data);
+    const response = yield genResponse(input.data);
     return {
         message: response.message,
         state: response.state,
     };
 }));
 fastify.post("/chat/create", (request, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const response = yield (0, createChatRoute_1.createChat)();
+    const response = yield createChat();
     return {
         session: response.session,
         message: response.message,
     };
 }));
 fastify.get("/chat/gameState", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const input = getGameStateRoute_1.getGameStateInputSchema.safeParse(req.body);
+    const input = getGameStateInputSchema.safeParse(req.body);
     if (!input.success)
         return res.code(400).send(input.error);
-    const state = yield (0, getGameStateRoute_1.getGameStateRoute)(input.data);
+    const state = yield getGameStateRoute(input.data);
     return { state: state };
 }));
 fastify.get("/chat/messages", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const input = getMessagesRoute_1.getMessagesInputSchema.safeParse(req.body);
+    const input = getMessagesInputSchema.safeParse(req.body);
     if (!input.success)
         return res.code(400).send(input.error);
-    const messages = yield (0, getMessagesRoute_1.retrieveMessages)(input.data);
+    const messages = yield retrieveMessages(input.data);
     return { messages: messages };
 }));
+//# sourceMappingURL=index.js.map

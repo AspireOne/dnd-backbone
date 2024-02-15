@@ -14,6 +14,7 @@ export type GameState = {
 };
 
 export type SessionData = {
+  id: number;
   threadId: string;
   gameState: GameState;
 };

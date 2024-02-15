@@ -2,9 +2,12 @@ import { openai } from "../lib/openai";
 import { Threads } from "openai/resources/beta";
 import RequiredActionFunctionToolCall = Threads.RequiredActionFunctionToolCall;
 import { RunSubmitToolOutputsParams } from "openai/src/resources/beta/threads/runs/runs";
-import {GameState, sessions} from "../lib/sessions";
+import { GameState, sessions } from "../lib/sessions";
 import { ResolvedRunStatus } from "../types/types";
 import { wait, withTimeout } from "../utils";
+import { db } from "../db/db";
+import { inventoryItems, stats as statsTable } from "../db/schema";
+import { and, eq } from "drizzle-orm";
 
 const CHECK_COUNT_LIMIT = 1000;
 const STATUS_CHECK_TIMEOUT = 5000;
@@ -61,7 +64,7 @@ export const runRequiredFunctions = (
       tool_call_id: action.id,
     });
     console.log(
-      `Ran function ${action.function.name}(${action.function.arguments}) (id: ${action.id}) / output: ${output}`,
+      `Ran function ${action.function.name}(${action.function.arguments}) (id: ${action.id}) / output: ${JSON.stringify(output)}`,
     );
   }
 
@@ -97,6 +100,12 @@ export const getFunctions = (session: string) => {
     getStats: () => sessions[session].gameState.stats,
     modifyStats: (stats: Partial<GameState["stats"]>) => {
       Object.assign(sessions[session].gameState.stats, stats);
+      // not awaitng.
+      db.update(statsTable)
+        .set(stats)
+        .where(eq(statsTable.sessionId, sessions[session].id))
+        .returning()
+        .then((res) => console.log(res));
     },
     addItem: (name: string, quantity: number, img: string) => {
       sessions[session].gameState.inventoryItems.push({
@@ -104,13 +113,49 @@ export const getFunctions = (session: string) => {
         quantity: quantity,
         img: img,
       });
+      db.insert(inventoryItems)
+        .values({
+          name,
+          quantity,
+          icon: img,
+          sessionId: sessions[session].id,
+        })
+        .returning()
+        .then((res) => console.log(res));
     },
     removeItem: (name: string, quantity: number) => {
       const item = sessions[session].gameState.inventoryItems.find(
         (item) => item.name === name,
       );
 
-      if (item) item.quantity -= quantity;
+      if (item) {
+        item.quantity -= quantity;
+        if (item.quantity <= 0) {
+          sessions[session].gameState.inventoryItems = sessions[
+            session
+          ].gameState.inventoryItems.filter((item) => item.name !== name);
+
+          db.delete(inventoryItems).where(
+            and(
+              eq(inventoryItems.name, name),
+              eq(inventoryItems.sessionId, sessions[session].id),
+            ),
+          );
+        } else {
+          db.update(inventoryItems)
+            .set({
+              quantity: item.quantity,
+            })
+            .where(
+              and(
+                eq(inventoryItems.name, name),
+                eq(inventoryItems.sessionId, sessions[session].id),
+              ),
+            )
+            .returning()
+            .then((res) => console.log(res));
+        }
+      }
     },
   };
 };
