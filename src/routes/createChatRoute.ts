@@ -20,6 +20,9 @@ export const createChat = async (): Promise<{
   let transactionSuccess = false;
   console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
 
+  const thread = await openai.beta.threads.create();
+  console.log("New thread created with ID:", thread.id);
+
   await db.transaction(async (tx) => {
     console.log("FFFFFFFFFFFFFFFFFFFasdasdasdasdFFFF");
     const _newSession = await tx
@@ -68,9 +71,6 @@ export const createChat = async (): Promise<{
   if (!transactionSuccess) {
     throw new Error("Failed to add new session data to database.");
   }
-
-  const thread = await openai.beta.threads.create();
-  console.log("New thread created with ID:", thread.id);
 
   // Create the run.
   let run = await openai.beta.threads.runs.create(thread.id, {

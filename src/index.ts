@@ -11,7 +11,7 @@ import {
   retrieveMessages,
   getMessagesInputSchema,
 } from "./routes/getMessagesRoute";
-import {fetchAndFillSessions} from "./helpers/fetchAndTransformSessions";
+import { fetchAndFillSessions } from "./helpers/fetchAndTransformSessions";
 
 /** This file is the entry point for the project. */
 
@@ -46,7 +46,7 @@ fastify.post("/chat/create", async (request, res) => {
 });
 
 fastify.get("/chat/gameState", async (req, res) => {
-  const input = getGameStateInputSchema.safeParse(req.body);
+  const input = getGameStateInputSchema.safeParse(req.query);
   if (!input.success) return res.code(400).send(input.error);
 
   const state = await getGameStateRoute(input.data);
@@ -54,7 +54,7 @@ fastify.get("/chat/gameState", async (req, res) => {
 });
 
 fastify.get("/chat/messages", async (req, res) => {
-  const input = getMessagesInputSchema.safeParse(req.body);
+  const input = getMessagesInputSchema.safeParse(req.query);
   if (!input.success) return res.code(400).send(input.error);
 
   const messages = await retrieveMessages(input.data);

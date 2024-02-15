@@ -107,17 +107,17 @@ export const getFunctions = (session: string) => {
         .returning()
         .then((res) => console.log(res));
     },
-    addItem: (name: string, quantity: number, img: string) => {
+    addItem: (name: string, quantity: number, img?: string) => {
       sessions[session].gameState.inventoryItems.push({
         name: name,
         quantity: quantity,
-        img: img,
+        img: img || "default",
       });
       db.insert(inventoryItems)
         .values({
           name,
           quantity,
-          icon: img,
+          icon: img || "default",
           sessionId: sessions[session].id,
         })
         .returning()

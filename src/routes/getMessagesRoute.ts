@@ -5,7 +5,7 @@ import { openai } from "../lib/openai";
 
 export const getMessagesInputSchema = z.object({
   session: sessionSchema,
-  limit: z.number().int().min(1).max(100),
+  limit: z.number().int().min(1).max(100).optional(),
   // Acts as a cursor.
   after: z.string().min(1).optional(),
 });
@@ -20,13 +20,13 @@ export const retrieveMessages = async ({
   const messages = await openai.beta.threads.messages.list(
     sessions[session].threadId,
     {
-      limit,
+      limit: limit ?? 15,
       after,
       // asc vs desc
       order: "desc", // From newest.
     },
   );
-  return messages.data.map((m) => {
+  return messages.data.reverse().map((m) => {
     if (m.content[0].type === "image_file")
       throw new Error("Image files are not supported rn.");
     return m.content[0].text.value;
