@@ -7,7 +7,7 @@ import { ResolvedRunStatus } from "../types/types";
 import { wait, withTimeout } from "../utils";
 import { db } from "../db/db";
 import { inventoryItems, stats as statsTable } from "../db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, } from "drizzle-orm";
 
 const CHECK_COUNT_LIMIT = 1000;
 const STATUS_CHECK_TIMEOUT = 5000;
@@ -64,7 +64,9 @@ export const runRequiredFunctions = (
       tool_call_id: action.id,
     });
     console.log(
-      `Ran function ${action.function.name}(${action.function.arguments}) (id: ${action.id}) / output: ${JSON.stringify(output)}`,
+      `Ran function ${action.function.name}(${action.function.arguments}) (id: ${
+        action.id
+      }) / output: ${JSON.stringify(output)}`,
     );
   }
 
@@ -100,7 +102,6 @@ export const getFunctions = (session: string) => {
     getStats: () => sessions[session].gameState.stats,
     modifyStats: (stats: Partial<GameState["stats"]>) => {
       Object.assign(sessions[session].gameState.stats, stats);
-      // not awaitng.
       db.update(statsTable)
         .set(stats)
         .where(eq(statsTable.sessionId, sessions[session].id))
@@ -125,36 +126,36 @@ export const getFunctions = (session: string) => {
     },
     removeItem: (name: string, quantity: number) => {
       const item = sessions[session].gameState.inventoryItems.find(
-        (item) => item.name === name,
+        (item) => item.name.toLowerCase() === name.toLowerCase(),
       );
 
-      if (item) {
-        item.quantity -= quantity;
-        if (item.quantity <= 0) {
-          sessions[session].gameState.inventoryItems = sessions[
-            session
-          ].gameState.inventoryItems.filter((item) => item.name !== name);
+      if (!item) return;
 
-          db.delete(inventoryItems).where(
+      item.quantity -= quantity;
+      if (item.quantity <= 0) {
+        sessions[session].gameState.inventoryItems = sessions[
+          session
+        ].gameState.inventoryItems.filter((item) => item.name !== name);
+
+        db.delete(inventoryItems).where(
+          and(
+            eq(inventoryItems.name, item.name),
+            eq(inventoryItems.sessionId, sessions[session].id),
+          ),
+        );
+      } else {
+        db.update(inventoryItems)
+          .set({
+            quantity: item.quantity,
+          })
+          .where(
             and(
-              eq(inventoryItems.name, name),
+              eq(inventoryItems.name, item.name),
               eq(inventoryItems.sessionId, sessions[session].id),
             ),
-          );
-        } else {
-          db.update(inventoryItems)
-            .set({
-              quantity: item.quantity,
-            })
-            .where(
-              and(
-                eq(inventoryItems.name, name),
-                eq(inventoryItems.sessionId, sessions[session].id),
-              ),
-            )
-            .returning()
-            .then((res) => console.log(res));
-        }
+          )
+          .returning()
+          .then((res) => console.log(res));
       }
     },
   };

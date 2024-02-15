@@ -18,13 +18,11 @@ export const createChat = async (): Promise<{
   //const session = genSessionUuid();
   let sessionId = "";
   let transactionSuccess = false;
-  console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
 
   const thread = await openai.beta.threads.create();
   console.log("New thread created with ID:", thread.id);
 
   await db.transaction(async (tx) => {
-    console.log("FFFFFFFFFFFFFFFFFFFasdasdasdasdFFFF");
     const _newSession = await tx
       .insert(dbSessions)
       .values({
