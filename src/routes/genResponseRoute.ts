@@ -6,7 +6,7 @@ import {
   getLatestMessage,
   waitUntilStatusResolved,
   resolveRequiredFunctionsRecursively,
-} from "../helpers/assistantHelpers";
+} from "../helpers/assistant";
 import { GameState } from "../lib/sessions";
 
 export const genResponseInputSchema = z.object({

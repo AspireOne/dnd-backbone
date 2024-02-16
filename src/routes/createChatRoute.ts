@@ -5,7 +5,7 @@ import {
   getLatestMessage,
   resolveRequiredFunctionsRecursively,
   waitUntilStatusResolved,
-} from "../helpers/assistantHelpers";
+} from "../helpers/assistant";
 import { ASSISTANT_ID } from "../lib/constants";
 import { db } from "../db/db";
 import { eq } from "drizzle-orm";
@@ -16,55 +16,11 @@ export const createChat = async (): Promise<{
   message: string;
 }> => {
   //const session = genSessionUuid();
-  let sessionId = "";
-  let transactionSuccess = false;
 
   const thread = await openai.beta.threads.create();
   console.log("New thread created with ID:", thread.id);
 
-  await db.transaction(async (tx) => {
-    const _newSession = await tx
-      .insert(dbSessions)
-      .values({
-        threadId: thread.id,
-      })
-      .returning();
-
-    const newSession = _newSession[0]!;
-    sessionId = newSession.id + "";
-
-    const _newStats = await tx
-      .insert(stats)
-      .values({
-        sessionId: newSession.id,
-        health: 100,
-        speed: 100,
-        mana: 50,
-        strength: 50,
-      })
-      .returning();
-
-    const newStats = _newStats[0]!;
-
-    await tx
-      .update(dbSessions)
-      .set({ statsId: newStats.id })
-      .where(eq(dbSessions.id, newSession.id));
-
-    console.log("New session created:", newSession);
-    console.log("New stats created:", newStats);
-
-    sessions[newSession.id] = {
-      id: newSession.id,
-      threadId: thread.id,
-      gameState: {
-        stats: newStats,
-        inventoryItems: [],
-      },
-    };
-
-    transactionSuccess = true;
-  });
+  const { sessionId, transactionSuccess } = await createChatInDb(thread.id);
 
   if (!transactionSuccess) {
     throw new Error("Failed to add new session data to database.");
@@ -100,4 +56,58 @@ function genSessionUuid() {
   // Generate four random alphanumeric characters
   const randomChars = Math.random().toString(36).substring(2, 6);
   return `${formattedDate}/${randomChars}`;
+}
+
+async function createChatInDb(threadId: string) {
+  let sessionId = "";
+  let transactionSuccess = false;
+
+  await db.transaction(async (tx) => {
+    const _newSession = await tx
+      .insert(dbSessions)
+      .values({
+        threadId: threadId,
+      })
+      .returning();
+
+    const newSession = _newSession[0]!;
+    sessionId = `${newSession.id}`;
+
+    const _newStats = await tx
+      .insert(stats)
+      .values({
+        sessionId: newSession.id,
+        health: 100,
+        speed: 100,
+        mana: 50,
+        strength: 50,
+      })
+      .returning();
+
+    const newStats = _newStats[0]!;
+
+    await tx
+      .update(dbSessions)
+      .set({ statsId: newStats.id })
+      .where(eq(dbSessions.id, newSession.id));
+
+    console.log("New session created:", newSession);
+    console.log("New stats created:", newStats);
+
+    sessions[newSession.id] = {
+      id: newSession.id,
+      threadId: threadId,
+      gameState: {
+        stats: newStats,
+        inventoryItems: [],
+      },
+    };
+
+    transactionSuccess = true;
+  });
+
+  return {
+    sessionId,
+    transactionSuccess,
+  };
 }
